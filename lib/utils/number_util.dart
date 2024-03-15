@@ -1,6 +1,20 @@
+import 'package:intl/intl.dart' as intl;
 import 'dart:math';
 
 class NumberUtil {
+  static String formatValue(num value) {
+    value = value / 1.0;
+    var f = intl.NumberFormat("###.##", "en_US");
+    var parts = f.format(value).split('.');
+    var formatter = intl.NumberFormat('#,###,###', 'en_US');
+    var money = formatter.format(double.tryParse(parts[0]));
+    money = money.replaceAll('.', ',');
+    if (parts.length > 1) {
+      money = '$money.${parts[1]}';
+    }
+    return money.split('.')[0];
+  }
+
   static String format(double n) {
     if (n >= 1000000000) {
       n /= 1000000000;

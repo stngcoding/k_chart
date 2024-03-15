@@ -9,14 +9,14 @@ class ChartTranslations {
   final String amount;
 
   const ChartTranslations({
-    this.date = 'Date',
-    this.open = 'Open',
-    this.high = 'High',
-    this.low = 'Low',
-    this.close = 'Close',
-    this.changeAmount = 'Change',
-    this.change = 'Change%',
-    this.amount = 'Amount',
+    this.date = 'Ngày',
+    this.open = 'Mở',
+    this.high = 'Cao',
+    this.low = 'Thấp',
+    this.close = 'Đóng',
+    this.changeAmount = 'Thay đổi',
+    this.change = '% Thay đổi',
+    this.amount = 'Khối lượng',
   });
 
   String byIndex(int index) {

@@ -1,7 +1,8 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart'
-    show Color, TextStyle, Rect, Canvas, Size, CustomPainter;
+    show Canvas, Color, Colors, CustomPainter, Rect, Size, TextStyle;
+
 import 'package:k_chart/utils/date_format_util.dart';
 
 import '../chart_style.dart' show ChartStyle;
@@ -17,7 +18,7 @@ abstract class BaseChartPainter extends CustomPainter {
   MainState mainState;
 
   SecondaryState secondaryState;
-
+  TextStyle textStyle;
   bool volHidden;
   bool isTapShowInfoDialog;
   double scaleX = 1.0, scrollX = 0.0, selectX;
@@ -55,6 +56,7 @@ abstract class BaseChartPainter extends CustomPainter {
     required this.isLongPress,
     required this.selectX,
     required this.xFrontPadding,
+    required this.textStyle,
     this.isOnTap = false,
     this.mainState = MainState.MA,
     this.volHidden = false,
@@ -179,10 +181,11 @@ abstract class BaseChartPainter extends CustomPainter {
     //secondaryState == SecondaryState.NONE隐藏副视图
     if (secondaryState != SecondaryState.NONE) {
       mSecondaryRect = Rect.fromLTRB(
-          0,
-          mMainRect.bottom + volHeight + mChildPadding,
-          mWidth,
-          mMainRect.bottom + volHeight + secondaryHeight);
+        0,
+        mMainRect.bottom + volHeight + mChildPadding,
+        mWidth,
+        mMainRect.bottom + volHeight + secondaryHeight,
+      );
     }
   }
 
@@ -357,20 +360,13 @@ abstract class BaseChartPainter extends CustomPainter {
       (translateX + mTranslateX) * scaleX;
 
   TextStyle getTextStyle(Color color) {
-    return TextStyle(fontSize: 10.0, color: color);
+    return textStyle.copyWith(
+      color: color,
+    );
   }
 
   @override
   bool shouldRepaint(BaseChartPainter oldDelegate) {
     return true;
-//    return oldDelegate.datas != datas ||
-//        oldDelegate.datas?.length != datas?.length ||
-//        oldDelegate.scaleX != scaleX ||
-//        oldDelegate.scrollX != scrollX ||
-//        oldDelegate.isLongPress != isLongPress ||
-//        oldDelegate.selectX != selectX ||
-//        oldDelegate.isLine != isLine ||
-//        oldDelegate.mainState != mainState ||
-//        oldDelegate.secondaryState != secondaryState;
   }
 }

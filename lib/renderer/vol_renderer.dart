@@ -7,16 +7,28 @@ class VolRenderer extends BaseChartRenderer<VolumeEntity> {
   late double mVolWidth;
   final ChartStyle chartStyle;
   final ChartColors chartColors;
-
-  VolRenderer(Rect mainRect, double maxValue, double minValue,
-      double topPadding, int fixedLength, this.chartStyle, this.chartColors)
+  final double rightPadding;
+  final TextStyle textStyle;
+  VolRenderer(
+      Rect mainRect,
+      double maxValue,
+      double minValue,
+      double topPadding,
+      int fixedLength,
+      this.chartStyle,
+      this.chartColors,
+      this.rightPadding,
+      this.textStyle)
       : super(
-            chartRect: mainRect,
-            maxValue: maxValue,
-            minValue: minValue,
-            topPadding: topPadding,
-            fixedLength: fixedLength,
-            gridColor: chartColors.gridColor,) {
+          rightPadding: rightPadding,
+          chartRect: mainRect,
+          maxValue: maxValue,
+          minValue: minValue,
+          topPadding: topPadding,
+          fixedLength: fixedLength,
+          gridColor: chartColors.gridColor,
+          textStyle: textStyle,
+        ) {
     mVolWidth = this.chartStyle.volWidth;
   }
 
@@ -51,34 +63,37 @@ class VolRenderer extends BaseChartRenderer<VolumeEntity> {
 
   @override
   void drawText(Canvas canvas, VolumeEntity data, double x) {
-    TextSpan span = TextSpan(
-      children: [
-        TextSpan(
-            text: "VOL:${NumberUtil.format(data.vol)}    ",
-            style: getTextStyle(this.chartColors.volColor)),
-        if (data.MA5Volume.notNullOrZero)
-          TextSpan(
-              text: "MA5:${NumberUtil.format(data.MA5Volume!)}    ",
-              style: getTextStyle(this.chartColors.ma5Color)),
-        if (data.MA10Volume.notNullOrZero)
-          TextSpan(
-              text: "MA10:${NumberUtil.format(data.MA10Volume!)}    ",
-              style: getTextStyle(this.chartColors.ma10Color)),
-      ],
-    );
-    TextPainter tp = TextPainter(text: span, textDirection: TextDirection.ltr);
-    tp.layout();
-    tp.paint(canvas, Offset(x, chartRect.top - topPadding));
+    // TextSpan span = TextSpan(
+    //   children: [
+    //     TextSpan(
+    //         text: "VOL:${NumberUtil.format(data.vol)}    ",
+    //         style: getTextStyle(this.chartColors.volColor)),
+    //     if (data.MA5Volume.notNullOrZero)
+    //       TextSpan(
+    //           text: "MA5:${NumberUtil.format(data.MA5Volume!)}    ",
+    //           style: getTextStyle(this.chartColors.ma5Color)),
+    //     if (data.MA10Volume.notNullOrZero)
+    //       TextSpan(
+    //           text: "MA10:${NumberUtil.format(data.MA10Volume!)}    ",
+    //           style: getTextStyle(this.chartColors.ma10Color)),
+    //   ],
+    // );
+    // TextPainter tp = TextPainter(text: span, textDirection: TextDirection.ltr);
+    // tp.layout();
+    // tp.paint(canvas, Offset(x, chartRect.top - topPadding));
   }
 
   @override
   void drawVerticalText(canvas, textStyle, int gridRows) {
-    TextSpan span =
-        TextSpan(text: "${NumberUtil.format(maxValue)}", style: textStyle);
-    TextPainter tp = TextPainter(text: span, textDirection: TextDirection.ltr);
-    tp.layout();
-    tp.paint(
-        canvas, Offset(chartRect.width - tp.width, chartRect.top - topPadding));
+    // TextSpan span =
+    //     TextSpan(text: "${NumberUtil.format(maxValue)}", style: textStyle);
+    // TextPainter tp = TextPainter(text: span, textDirection: TextDirection.ltr);
+    // tp.layout();
+    // tp.paint(
+    //   canvas,
+    //   Offset(chartRect.width - tp.width - rightPadding,
+    //       chartRect.top - topPadding),
+    // );
   }
 
   @override

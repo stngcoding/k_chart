@@ -5,6 +5,7 @@ import '../k_chart_widget.dart' show MainState;
 import 'base_chart_renderer.dart';
 
 enum VerticalTextAlignment { left, right }
+
 //For TrendLine
 double? trendLineMax;
 double? trendLineScale;
@@ -26,7 +27,8 @@ class MainRenderer extends BaseChartRenderer<CandleEntity> {
   double scaleX;
   late Paint mLinePaint;
   final VerticalTextAlignment verticalTextAlignment;
-
+  TextStyle textStyle;
+  double rightPadding;
   MainRenderer(
       Rect mainRect,
       double maxValue,
@@ -39,14 +41,19 @@ class MainRenderer extends BaseChartRenderer<CandleEntity> {
       this.chartColors,
       this.scaleX,
       this.verticalTextAlignment,
+      this.rightPadding,
+      this.textStyle,
       [this.maDayList = const [5, 10, 20]])
       : super(
-            chartRect: mainRect,
-            maxValue: maxValue,
-            minValue: minValue,
-            topPadding: topPadding,
-            fixedLength: fixedLength,
-            gridColor: chartColors.gridColor) {
+          rightPadding: rightPadding,
+          chartRect: mainRect,
+          maxValue: maxValue,
+          minValue: minValue,
+          topPadding: topPadding,
+          fixedLength: fixedLength,
+          gridColor: chartColors.gridColor,
+          textStyle: textStyle,
+        ) {
     mCandleWidth = this.chartStyle.candleWidth;
     mCandleLineWidth = this.chartStyle.candleLineWidth;
     mLinePaint = Paint()
@@ -132,48 +139,55 @@ class MainRenderer extends BaseChartRenderer<CandleEntity> {
     ..style = PaintingStyle.fill
     ..isAntiAlias = true;
 
-  //画折线图
-  drawPolyline(double lastPrice, double curPrice, Canvas canvas, double lastX,
-      double curX) {
-//    drawLine(lastPrice + 100, curPrice + 100, canvas, lastX, curX, ChartColors.kLineColor);
+  //Draw Main Line
+  void drawPolyline(double lastPrice, double curPrice, Canvas canvas,
+      double lastX, double curX) {
     mLinePath ??= Path();
 
-//    if (lastX == curX) {
-//      mLinePath.moveTo(lastX, getY(lastPrice));
-//    } else {
-////      mLinePath.lineTo(curX, getY(curPrice));
-//      mLinePath.cubicTo(
-//          (lastX + curX) / 2, getY(lastPrice), (lastX + curX) / 2, getY(curPrice), curX, getY(curPrice));
-//    }
     if (lastX == curX) lastX = 0; //起点位置填充
     mLinePath!.moveTo(lastX, getY(lastPrice));
     mLinePath!.cubicTo((lastX + curX) / 2, getY(lastPrice), (lastX + curX) / 2,
         getY(curPrice), curX, getY(curPrice));
 
-    //画阴影
+    //Line Gradient
     mLineFillShader ??= LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       tileMode: TileMode.clamp,
-      colors: [this.chartColors.lineFillColor, this.chartColors.lineFillInsideColor],
-    ).createShader(Rect.fromLTRB(
-        chartRect.left, chartRect.top, chartRect.right, chartRect.bottom));
+      colors: [
+        this.chartColors.lineFillColor,
+        this.chartColors.lineFillColor,
+        this.chartColors.lineFillColor,
+        this.chartColors.lineFillInsideColor
+      ],
+    ).createShader(
+      Rect.fromLTRB(chartRect.left, 0.0, chartRect.right, 360),
+    );
     mLineFillPaint..shader = mLineFillShader;
 
     mLineFillPath ??= Path();
 
-    mLineFillPath!.moveTo(lastX, chartRect.height + chartRect.top);
-    mLineFillPath!.lineTo(lastX, getY(lastPrice));
-    mLineFillPath!.cubicTo((lastX + curX) / 2, getY(lastPrice),
-        (lastX + curX) / 2, getY(curPrice), curX, getY(curPrice));
+    mLineFillPath!.moveTo(lastX, getY(lastPrice));
+    mLineFillPath!.cubicTo(
+      (lastX + curX) / 2,
+      getY(lastPrice),
+      (lastX + curX) / 2,
+      getY(curPrice),
+      curX,
+      getY(curPrice),
+    );
     mLineFillPath!.lineTo(curX, chartRect.height + chartRect.top);
+    mLineFillPath!.lineTo(lastX, chartRect.height + chartRect.top);
     mLineFillPath!.close();
 
     canvas.drawPath(mLineFillPath!, mLineFillPaint);
     mLineFillPath!.reset();
 
-    canvas.drawPath(mLinePath!,
-        mLinePaint..strokeWidth = (mLineStrokeWidth / scaleX).clamp(0.1, 1.0));
+    //draw line
+    canvas.drawPath(
+      mLinePath!,
+      mLinePaint..strokeWidth = (mLineStrokeWidth / scaleX).clamp(0.1, 4),
+    );
     mLinePath!.reset();
   }
 
@@ -241,7 +255,8 @@ class MainRenderer extends BaseChartRenderer<CandleEntity> {
     double rowSpace = chartRect.height / gridRows;
     for (var i = 0; i <= gridRows; ++i) {
       double value = (gridRows - i) * rowSpace / scaleY + minValue;
-      TextSpan span = TextSpan(text: "${format(value)}", style: textStyle);
+      TextSpan span =
+          TextSpan(text: "${formatValue(value)} ", style: textStyle);
       TextPainter tp =
           TextPainter(text: span, textDirection: TextDirection.ltr);
       tp.layout();
@@ -252,7 +267,7 @@ class MainRenderer extends BaseChartRenderer<CandleEntity> {
           offsetX = 0;
           break;
         case VerticalTextAlignment.right:
-          offsetX = chartRect.width - tp.width;
+          offsetX = chartRect.width - tp.width - rightPadding;
           break;
       }
 

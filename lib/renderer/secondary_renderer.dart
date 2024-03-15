@@ -11,7 +11,8 @@ class SecondaryRenderer extends BaseChartRenderer<MACDEntity> {
   SecondaryState state;
   final ChartStyle chartStyle;
   final ChartColors chartColors;
-
+  final double rightPadding;
+  final TextStyle textStyle;
   SecondaryRenderer(
       Rect mainRect,
       double maxValue,
@@ -20,14 +21,19 @@ class SecondaryRenderer extends BaseChartRenderer<MACDEntity> {
       this.state,
       int fixedLength,
       this.chartStyle,
-      this.chartColors)
+      this.chartColors,
+      this.rightPadding,
+      this.textStyle)
       : super(
-            chartRect: mainRect,
-            maxValue: maxValue,
-            minValue: minValue,
-            topPadding: topPadding,
-            fixedLength: fixedLength,
-            gridColor: chartColors.gridColor,) {
+          rightPadding: rightPadding,
+          chartRect: mainRect,
+          maxValue: maxValue,
+          minValue: minValue,
+          topPadding: topPadding,
+          fixedLength: fixedLength,
+          gridColor: chartColors.gridColor,
+          textStyle: textStyle,
+        ) {
     mMACDWidth = this.chartStyle.macdWidth;
   }
 

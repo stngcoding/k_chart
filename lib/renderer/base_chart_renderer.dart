@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 
 export '../chart_style.dart';
+import 'package:intl/intl.dart' as intl;
 
 abstract class BaseChartRenderer<T> {
   double maxValue, minValue;
   late double scaleY;
   double topPadding;
+  double rightPadding;
   Rect chartRect;
   int fixedLength;
+  TextStyle textStyle;
   Paint chartPaint = Paint()
     ..isAntiAlias = true
     ..filterQuality = FilterQuality.high
@@ -19,14 +22,15 @@ abstract class BaseChartRenderer<T> {
     ..strokeWidth = 0.5
     ..color = Color(0xff4c5c74);
 
-  BaseChartRenderer({
-    required this.chartRect,
-    required this.maxValue,
-    required this.minValue,
-    required this.topPadding,
-    required this.fixedLength,
-    required Color gridColor,
-  }) {
+  BaseChartRenderer(
+      {required this.rightPadding,
+      required this.chartRect,
+      required this.maxValue,
+      required this.minValue,
+      required this.topPadding,
+      required this.fixedLength,
+      required Color gridColor,
+      required this.textStyle}) {
     if (maxValue == minValue) {
       maxValue *= 1.5;
       minValue /= 2;
@@ -69,6 +73,21 @@ abstract class BaseChartRenderer<T> {
   }
 
   TextStyle getTextStyle(Color color) {
-    return TextStyle(fontSize: 10.0, color: color);
+    return textStyle.copyWith(
+      color: color,
+    );
+  }
+
+  String formatValue(num value) {
+    value = value / 1.0;
+    var f = intl.NumberFormat("###.##", "en_US");
+    var parts = f.format(value).split('.');
+    var formatter = intl.NumberFormat('#,###,###', 'en_US');
+    var money = formatter.format(double.tryParse(parts[0]));
+    money = money.replaceAll('.', ',');
+    if (parts.length > 1) {
+      money = '$money.${parts[1]}';
+    }
+    return money.split('.')[0];
   }
 }

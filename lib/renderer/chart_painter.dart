@@ -1,6 +1,8 @@
 import 'dart:async' show StreamSink;
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:k_chart/utils/number_util.dart';
 
 import '../entity/info_window_entity.dart';
@@ -48,6 +50,8 @@ class ChartPainter extends BaseChartPainter {
   final bool hideGrid;
   final bool showNowPrice;
   final VerticalTextAlignment verticalTextAlignment;
+  double? rightPadding;
+  TextStyle textStyle;
 
   ChartPainter(
     this.chartStyle,
@@ -68,11 +72,13 @@ class ChartPainter extends BaseChartPainter {
     volHidden,
     secondaryState,
     this.sink,
+    this.rightPadding,
     bool isLine = false,
     this.hideGrid = false,
     this.showNowPrice = true,
     this.fixedLength = 2,
     this.maDayList = const [5, 10, 20],
+    required this.textStyle,
   }) : super(chartStyle,
             datas: datas,
             scaleX: scaleX,
@@ -85,7 +91,8 @@ class ChartPainter extends BaseChartPainter {
             volHidden: volHidden,
             secondaryState: secondaryState,
             xFrontPadding: xFrontPadding,
-            isLine: isLine) {
+            isLine: isLine,
+            textStyle: textStyle) {
     selectPointPaint = Paint()
       ..isAntiAlias = true
       ..strokeWidth = 0.5
@@ -119,22 +126,36 @@ class ChartPainter extends BaseChartPainter {
       this.chartColors,
       this.scaleX,
       verticalTextAlignment,
+      rightPadding ?? 0,
+      textStyle,
       maDayList,
     );
     if (mVolRect != null) {
-      mVolRenderer = VolRenderer(mVolRect!, mVolMaxValue, mVolMinValue,
-          mChildPadding, fixedLength, this.chartStyle, this.chartColors);
+      mVolRenderer = VolRenderer(
+        mVolRect!,
+        mVolMaxValue,
+        mVolMinValue,
+        mChildPadding,
+        fixedLength,
+        this.chartStyle,
+        this.chartColors,
+        this.rightPadding ?? 0,
+        textStyle,
+      );
     }
     if (mSecondaryRect != null) {
       mSecondaryRenderer = SecondaryRenderer(
-          mSecondaryRect!,
-          mSecondaryMaxValue,
-          mSecondaryMinValue,
-          mChildPadding,
-          secondaryState,
-          fixedLength,
-          chartStyle,
-          chartColors);
+        mSecondaryRect!,
+        mSecondaryMaxValue,
+        mSecondaryMinValue,
+        mChildPadding,
+        secondaryState,
+        fixedLength,
+        chartStyle,
+        chartColors,
+        rightPadding ?? 0,
+        textStyle,
+      );
     }
   }
 
@@ -155,7 +176,9 @@ class ChartPainter extends BaseChartPainter {
       Rect volRect = Rect.fromLTRB(
           0, mVolRect!.top - mChildPadding, mVolRect!.width, mVolRect!.bottom);
       canvas.drawRect(
-          volRect, mBgPaint..shader = mBgGradient.createShader(volRect));
+        volRect,
+        mBgPaint..shader = mBgGradient.createShader(volRect),
+      );
     }
 
     if (mSecondaryRect != null) {
@@ -240,17 +263,6 @@ class ChartPainter extends BaseChartPainter {
         tp.paint(canvas, Offset(x, y));
       }
     }
-
-//    double translateX = xToTranslateX(0);
-//    if (translateX >= startX && translateX <= stopX) {
-//      TextPainter tp = getTextPainter(getDate(datas[mStartIndex].id));
-//      tp.paint(canvas, Offset(0, y));
-//    }
-//    translateX = xToTranslateX(size.width);
-//    if (translateX >= startX && translateX <= stopX) {
-//      TextPainter tp = getTextPainter(getDate(datas[mStopIndex].id));
-//      tp.paint(canvas, Offset(size.width - tp.width, y));
-//    }
   }
 
   @override
@@ -459,21 +471,41 @@ class ChartPainter extends BaseChartPainter {
       ..color = value >= datas!.last.open
           ? this.chartColors.nowPriceUpColor
           : this.chartColors.nowPriceDnColor;
-    //先画横线
-    double startX = 0;
+    //Draw horizontal now price line
+    double startX = translateXtoX(getX(mStopIndex));
+
+    //If scrolled horizontal => line start from left to right
+    if (mStopIndex < datas!.length - 1) {
+      startX = 0;
+    }
+
     final max = -mTranslateX + mWidth / scaleX;
     final space =
         this.chartStyle.nowPriceLineSpan + this.chartStyle.nowPriceLineLength;
+
     while (startX < max) {
       canvas.drawLine(
-          Offset(startX, y),
-          Offset(startX + this.chartStyle.nowPriceLineLength, y),
-          nowPricePaint);
+        Offset(
+          startX,
+          y,
+        ),
+        Offset(
+          startX + this.chartStyle.nowPriceLineLength,
+          y,
+        ),
+        Paint()
+          ..color = chartColors.gridColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1,
+      );
       startX += space;
     }
+
     //再画背景和文本
     TextPainter tp = getTextPainter(
-        value.toStringAsFixed(fixedLength), this.chartColors.nowPriceTextColor);
+      NumberUtil.formatValue(value),
+      this.chartColors.nowPriceTextColor,
+    );
 
     double offsetX;
     switch (verticalTextAlignment) {
@@ -481,15 +513,45 @@ class ChartPainter extends BaseChartPainter {
         offsetX = 0;
         break;
       case VerticalTextAlignment.right:
-        offsetX = mWidth - tp.width;
+        offsetX = mWidth - tp.width - (rightPadding ?? 0);
         break;
     }
 
     double top = y - tp.height / 2;
-    canvas.drawRect(
-        Rect.fromLTRB(offsetX, top, offsetX + tp.width, top + tp.height),
-        nowPricePaint);
-    tp.paint(canvas, Offset(offsetX, top));
+    Radius radius = Radius.circular(4);
+    canvas.drawRRect(
+      RRect.fromLTRBAndCorners(
+        offsetX - 2,
+        top - 2,
+        offsetX + tp.width + 2,
+        top + tp.height + 3,
+        topRight: radius,
+        topLeft: radius,
+        bottomLeft: radius,
+        bottomRight: radius,
+      ),
+      Paint()
+        ..color = chartColors.gridColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+    canvas.drawRRect(
+      RRect.fromLTRBAndCorners(
+        offsetX - 1,
+        top - 1,
+        offsetX + tp.width + 1,
+        top + tp.height + 2,
+        topRight: radius,
+        topLeft: radius,
+        bottomLeft: radius,
+        bottomRight: radius,
+      ),
+      nowPricePaint..color = Colors.black,
+    );
+    tp.paint(
+      canvas,
+      Offset(offsetX, top),
+    );
   }
 
 //For TrendLine
@@ -571,14 +633,22 @@ class ChartPainter extends BaseChartPainter {
         Offset(-mTranslateX + mWidth / scaleX, y), paintX);
     if (scaleX >= 1) {
       canvas.drawOval(
-          Rect.fromCenter(
-              center: Offset(x, y), height: 2.0 * scaleX, width: 2.0),
-          paintX);
+        Rect.fromCenter(
+          center: Offset(x, y),
+          height: 2.0 * scaleX,
+          width: 2.0,
+        ),
+        paintX,
+      );
     } else {
       canvas.drawOval(
-          Rect.fromCenter(
-              center: Offset(x, y), height: 2.0, width: 2.0 / scaleX),
-          paintX);
+        Rect.fromCenter(
+          center: Offset(x, y),
+          height: 2.0,
+          width: 2.0 / scaleX,
+        ),
+        paintX,
+      );
     }
   }
 
@@ -586,16 +656,18 @@ class ChartPainter extends BaseChartPainter {
     if (color == null) {
       color = this.chartColors.defaultTextColor;
     }
-    TextSpan span = TextSpan(text: "$text", style: getTextStyle(color));
+    TextSpan span = TextSpan(text: " $text ", style: getTextStyle(color));
     TextPainter tp = TextPainter(text: span, textDirection: TextDirection.ltr);
     tp.layout();
     return tp;
   }
 
   String getDate(int? date) => dateFormat(
-      DateTime.fromMillisecondsSinceEpoch(
-          date ?? DateTime.now().millisecondsSinceEpoch),
-      mFormats);
+        DateTime.fromMillisecondsSinceEpoch(
+          date ?? DateTime.now().millisecondsSinceEpoch,
+        ),
+        mFormats,
+      );
 
   double getMainY(double y) => mMainRenderer.getY(y);
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:k_chart/chart_translations.dart';
@@ -55,6 +56,9 @@ class KChartWidget extends StatefulWidget {
   final VerticalTextAlignment verticalTextAlignment;
   final bool isTrendLine;
   final double xFrontPadding;
+  TextStyle? textStyle;
+  double? initialScale;
+  double? rightPadding;
 
   KChartWidget(
     this.datas,
@@ -82,7 +86,10 @@ class KChartWidget extends StatefulWidget {
     this.flingRatio = 0.5,
     this.flingCurve = Curves.decelerate,
     this.isOnDrag,
-    this.verticalTextAlignment = VerticalTextAlignment.left,
+    this.verticalTextAlignment = VerticalTextAlignment.right,
+    this.rightPadding,
+    this.initialScale,
+    this.textStyle,
   });
 
   @override
@@ -91,12 +98,12 @@ class KChartWidget extends StatefulWidget {
 
 class _KChartWidgetState extends State<KChartWidget>
     with TickerProviderStateMixin {
-  double mScaleX = 1.0, mScrollX = 0.0, mSelectX = 0.0;
+  //mScaleX is initial cale
+  double mScaleX = 0.1, mScrollX = 0.0, mSelectX = 0.0;
   StreamController<InfoWindowEntity?>? mInfoWindowStream;
   double mHeight = 0, mWidth = 0;
   AnimationController? _controller;
   Animation<double>? aniX;
-
   //For TrendLine
   List<TrendLine> lines = [];
   double? changeinXposition;
@@ -109,11 +116,12 @@ class _KChartWidgetState extends State<KChartWidget>
     return mScaleX;
   }
 
-  double _lastScale = 1.0;
+  double _lastScale = 0.1;
   bool isScale = false, isDrag = false, isLongPress = false, isOnTap = false;
 
   @override
   void initState() {
+    mScaleX = widget.initialScale ?? mScaleX;
     super.initState();
     mInfoWindowStream = StreamController<InfoWindowEntity?>();
   }
@@ -134,7 +142,7 @@ class _KChartWidgetState extends State<KChartWidget>
   Widget build(BuildContext context) {
     if (widget.datas != null && widget.datas!.isEmpty) {
       mScrollX = mSelectX = 0.0;
-      mScaleX = 1.0;
+      mScaleX = 0.1;
     }
     final _painter = ChartPainter(
       widget.chartStyle,
@@ -153,13 +161,16 @@ class _KChartWidgetState extends State<KChartWidget>
       mainState: widget.mainState,
       volHidden: widget.volHidden,
       secondaryState: widget.secondaryState,
+
       isLine: widget.isLine,
       hideGrid: widget.hideGrid,
       showNowPrice: widget.showNowPrice,
       sink: mInfoWindowStream?.sink,
       fixedLength: widget.fixedLength,
       maDayList: widget.maDayList,
-      verticalTextAlignment: widget.verticalTextAlignment,
+      verticalTextAlignment: VerticalTextAlignment.right,
+      rightPadding: widget.rightPadding,
+      textStyle: widget.textStyle ?? TextStyle(fontSize: 10),
     );
 
     return LayoutBuilder(
@@ -209,6 +220,7 @@ class _KChartWidgetState extends State<KChartWidget>
           },
           onHorizontalDragUpdate: (details) {
             if (isScale || isLongPress) return;
+
             mScrollX = ((details.primaryDelta ?? 0) / mScaleX + mScrollX)
                 .clamp(0.0, ChartPainter.maxScrollX)
                 .toDouble();
@@ -224,7 +236,7 @@ class _KChartWidgetState extends State<KChartWidget>
           },
           onScaleUpdate: (details) {
             if (isDrag || isLongPress) return;
-            mScaleX = (_lastScale * details.scale).clamp(0.5, 2.2);
+            mScaleX = (_lastScale * details.scale).clamp(0.1, 2.2);
             notifyChanged();
           },
           onScaleEnd: (_) {
